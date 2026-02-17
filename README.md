@@ -563,7 +563,7 @@ SELECT @@SERVERNAME AS [Server Name], [Output] AS [Privileges Information], CURR
 FROM #RDXResults WHERE [output] IS NOT NULL;
 DROP TABLE #RDXResults;
 
-From <https://drive.google.com/drive/folders/1P6nRSivyQy3d7FMBPmKkVRwM8TmKXISA> 
+linkedin.com/in/teddy-t-28a76b200
 
 
 
@@ -1213,13 +1213,9 @@ Select name, is_encrypted from sys.databases
 Select * from sys.certificates
 ---------------------------------------------------------------
 
-
-
-Redundancy 
+Backup mantainnance plan 
 
 	1. Check SQL Server Instance Uptime
-
-
 --In SQL Server 2008 or later you can also base your query on:
 --SELECT sqlserver_start_time FROM sys.dm_os_sys_info
 SELECT
@@ -1448,11 +1444,6 @@ DATA_COMPRESSION = ROW -- if Enterprise & table large enough to matter
 
 
 
-
-
-
-
-
 -- Display the current waits
 
 SELECT wait_type, wait_resource, count(*) AS cnt 
@@ -1498,10 +1489,6 @@ All queries
 SCOM SQL queries - Kevin Holman's Blog
 
 => SQL Server – Get all Login Accounts Using T-SQL Query – SQL Logins, Windows Logins, Windows Groups | DataGinger.com
-
-
-
-
 
 
 	1. Deprecated logical disk free space  
@@ -1561,7 +1548,6 @@ select
 process_physical_memory_low,
 process_virtual_memory_low
 from sys. dm_os_process_memory
-
 
 
 
@@ -2333,201 +2319,4 @@ WITH RECOVERY, STOPAT = 'YYYY-MM-DD 14:25:00';
 
 
 
--- get login sids from principal to create on mirror so we have the same sid and can failover without login issue
-SELECT 
-'create login [' + p.name + '] ' + 
-case when p.type in('U','G') then 'from windows ' else '' end +
-'with ' +
-case when p.type = 'S' then 'password = ' + master.sys.fn_varbintohexstr(l.password_hash) + ' hashed, ' +
-'sid = ' + master.sys.fn_varbintohexstr(l.sid) + ', check_expiration = ' +
-case when l.is_policy_checked > 0 then 'ON, ' else 'OFF, ' end + 'check_policy = ' + case when l.is_expiration_checked > 0 then 'ON, ' else 'OFF, ' end +
-case when l.credential_id > 0 then 'credential = ' + c.name + ', ' else '' end 
-else '' end +
-'default_database = ' + p.default_database_name +
-case when len(p.default_language_name) > 0 then ', default_language = ' + p.default_language_name else '' end
-FROM sys.server_principals p
-LEFT JOIN sys.sql_logins l
-ON p.principal_id = l.principal_id
-LEFT JOIN sys.credentials c
-ON  l.credential_id = c.credential_id
-WHERE p.type in('S','U','G')
-AND p.name <> 'sa'
 
---2) for your specific request: login and users, including their role/permission, use this one 
-/*
-Security Audit Report
-1) List all access provisioned to a SQL user or Windows user/group directly
-2) List all access provisioned to a SQL user or Windows user/group through a database or application role
-3) List all access provisioned to the public role
-
-Columns Returned:
-UserType        : Value will be either 'SQL User', 'Windows User', or 'Windows Group'.
-                  This reflects the type of user/group defined for the SQL Server account.
-DatabaseUserName: Name of the associated user as defined in the database user account.  The database user may not be the
-                  same as the server user.
-LoginName       : SQL or Windows/Active Directory user account.  This could also be an Active Directory group.
-Role            : The role name.  This will be null if the associated permissions to the object are defined at directly
-                  on the user account, otherwise this will be the name of the role that the user is a member of.
-PermissionType  : Type of permissions the user/role has on an object. Examples could include CONNECT, EXECUTE, SELECT
-                  DELETE, INSERT, ALTER, CONTROL, TAKE OWNERSHIP, VIEW DEFINITION, etc.
-                  This value may not be populated for all roles.  Some built in roles have implicit permission
-                  definitions.
-PermissionState : Reflects the state of the permission type, examples could include GRANT, DENY, etc.
-                  This value may not be populated for all roles.  Some built in roles have implicit permission
-                  definitions.
-ObjectType      : Type of object the user/role is assigned permissions on.  Examples could include USER_TABLE,
-                  SQL_SCALAR_FUNCTION, SQL_INLINE_TABLE_VALUED_FUNCTION, SQL_STORED_PROCEDURE, VIEW, etc.
-                  This value may not be populated for all roles.  Some built in roles have implicit permission
-                  definitions.
-Schema          : Name of the schema the object is in.
-ObjectName      : Name of the object that the user/role is assigned permissions on.
-                  This value may not be populated for all roles.  Some built in roles have implicit permission
-                  definitions.
-ColumnName      : Name of the column of the object that the user/role is assigned permissions on. This value
-                  is only populated if the object is a table, view or a table value function.
-*/
-
-    --1) List all access provisioned to a SQL user or Windows user/group directly
-    SELECT
-        [UserType] = CASE princ.[type]
-                         WHEN 'S' THEN 'SQL User'
-                         WHEN 'U' THEN 'Windows User'
-                         WHEN 'G' THEN 'Windows Group'
-                     END,
-        [DatabaseUserName] = princ.[name],
-        [LoginName]        = ulogin.[name],
-        [Role]             = NULL,
-        [PermissionType]   = perm.[permission_name],
-        [PermissionState]  = perm.[state_desc],
-        [ObjectType] = CASE perm.[class]
-                           WHEN 1 THEN obj.[type_desc]        -- Schema-contained objects
-                           ELSE perm.[class_desc]             -- Higher-level objects
-                       END,
-        [Schema] = objschem.[name],
-        [ObjectName] = CASE perm.[class]
-                           WHEN 3 THEN permschem.[name]       -- Schemas
-                           WHEN 4 THEN imp.[name]             -- Impersonations
-                           ELSE OBJECT_NAME(perm.[major_id])  -- General objects
-                       END,
-        [ColumnName] = col.[name]
-    FROM
-        --Database user
-        sys.database_principals            AS princ
-        --Login accounts
-        LEFT JOIN sys.server_principals    AS ulogin    ON ulogin.[sid] = princ.[sid]
-        --Permissions
-        LEFT JOIN sys.database_permissions AS perm      ON perm.[grantee_principal_id] = princ.[principal_id]
-        LEFT JOIN sys.schemas              AS permschem ON permschem.[schema_id] = perm.[major_id]
-        LEFT JOIN sys.objects              AS obj       ON obj.[object_id] = perm.[major_id]
-        LEFT JOIN sys.schemas              AS objschem  ON objschem.[schema_id] = obj.[schema_id]
-        --Table columns
-        LEFT JOIN sys.columns              AS col       ON col.[object_id] = perm.[major_id]
-                                                           AND col.[column_id] = perm.[minor_id]
-        --Impersonations
-        LEFT JOIN sys.database_principals  AS imp       ON imp.[principal_id] = perm.[major_id]
-    WHERE
-        princ.[type] IN ('S','U','G')
-        -- No need for these system accounts
-        AND princ.[name] NOT IN ('sys', 'INFORMATION_SCHEMA')
-
-UNION
-
-    --2) List all access provisioned to a SQL user or Windows user/group through a database or application role
-    SELECT
-        [UserType] = CASE membprinc.[type]
-                         WHEN 'S' THEN 'SQL User'
-                         WHEN 'U' THEN 'Windows User'
-                         WHEN 'G' THEN 'Windows Group'
-                     END,
-        [DatabaseUserName] = membprinc.[name],
-        [LoginName]        = ulogin.[name],
-        [Role]             = roleprinc.[name],
-        [PermissionType]   = perm.[permission_name],
-        [PermissionState]  = perm.[state_desc],
-        [ObjectType] = CASE perm.[class]
-                           WHEN 1 THEN obj.[type_desc]        -- Schema-contained objects
-                           ELSE perm.[class_desc]             -- Higher-level objects
-                       END,
-        [Schema] = objschem.[name],
-        [ObjectName] = CASE perm.[class]
-                           WHEN 3 THEN permschem.[name]       -- Schemas
-                           WHEN 4 THEN imp.[name]             -- Impersonations
-                           ELSE OBJECT_NAME(perm.[major_id])  -- General objects
-                       END,
-        [ColumnName] = col.[name]
-    FROM
-        --Role/member associations
-        sys.database_role_members          AS members
-        --Roles
-        JOIN      sys.database_principals  AS roleprinc ON roleprinc.[principal_id] = members.[role_principal_id]
-        --Role members (database users)
-        JOIN      sys.database_principals  AS membprinc ON membprinc.[principal_id] = members.[member_principal_id]
-        --Login accounts
-        LEFT JOIN sys.server_principals    AS ulogin    ON ulogin.[sid] = membprinc.[sid]
-        --Permissions
-        LEFT JOIN sys.database_permissions AS perm      ON perm.[grantee_principal_id] = roleprinc.[principal_id]
-        LEFT JOIN sys.schemas              AS permschem ON permschem.[schema_id] = perm.[major_id]
-        LEFT JOIN sys.objects              AS obj       ON obj.[object_id] = perm.[major_id]
-        LEFT JOIN sys.schemas              AS objschem  ON objschem.[schema_id] = obj.[schema_id]
-        --Table columns
-        LEFT JOIN sys.columns              AS col       ON col.[object_id] = perm.[major_id]
-                                                           AND col.[column_id] = perm.[minor_id]
-        --Impersonations
-        LEFT JOIN sys.database_principals  AS imp       ON imp.[principal_id] = perm.[major_id]
-    WHERE
-        membprinc.[type] IN ('S','U','G')
-        -- No need for these system accounts
-        AND membprinc.[name] NOT IN ('sys', 'INFORMATION_SCHEMA')
-
-UNION
-
-    --3) List all access provisioned to the public role, which everyone gets by default
-    SELECT
-        [UserType]         = '{All Users}',
-        [DatabaseUserName] = '{All Users}',
-        [LoginName]        = '{All Users}',
-        [Role]             = roleprinc.[name],
-        [PermissionType]   = perm.[permission_name],
-        [PermissionState]  = perm.[state_desc],
-        [ObjectType] = CASE perm.[class]
-                           WHEN 1 THEN obj.[type_desc]        -- Schema-contained objects
-                           ELSE perm.[class_desc]             -- Higher-level objects
-                       END,
-        [Schema] = objschem.[name],
-        [ObjectName] = CASE perm.[class]
-                           WHEN 3 THEN permschem.[name]       -- Schemas
-                           WHEN 4 THEN imp.[name]             -- Impersonations
-                           ELSE OBJECT_NAME(perm.[major_id])  -- General objects
-                       END,
-        [ColumnName] = col.[name]
-    FROM
-        --Roles
-        sys.database_principals            AS roleprinc
-        --Role permissions
-        LEFT JOIN sys.database_permissions AS perm      ON perm.[grantee_principal_id] = roleprinc.[principal_id]
-        LEFT JOIN sys.schemas              AS permschem ON permschem.[schema_id] = perm.[major_id]
-        --All objects
-        JOIN      sys.objects              AS obj       ON obj.[object_id] = perm.[major_id]
-        LEFT JOIN sys.schemas              AS objschem  ON objschem.[schema_id] = obj.[schema_id]
-        --Table columns
-        LEFT JOIN sys.columns              AS col       ON col.[object_id] = perm.[major_id]
-                                                           AND col.[column_id] = perm.[minor_id]
-        --Impersonations
-        LEFT JOIN sys.database_principals  AS imp       ON imp.[principal_id] = perm.[major_id]
-    WHERE
-        roleprinc.[type] = 'R'
-        AND roleprinc.[name] = 'public'
-        AND obj.[is_ms_shipped] = 0
-
-ORDER BY
-    [UserType],
-    [DatabaseUserName],
-    [LoginName],
-    [Role],
-    [Schema],
-    [ObjectName],
-    [ColumnName],
-    [PermissionType],
-    [PermissionState],
-    [ObjectType]
-<img width="583" height="29605" alt="image" src="https://github.com/user-attachments/assets/0be8ff85-8a1f-4f7a-b149-ed562eb9e134" />
