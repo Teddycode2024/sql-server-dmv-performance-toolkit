@@ -1,6 +1,7 @@
 # sql-server-dmv-performance-toolkit
-A practical collection of SQL Server DMV scripts for monitoring CPU, memory, I/O, blocking, waits, and overall performance health. Built for real-world DBA troubleshooting and performance tuning scenarios.
-Top 10 SQL Server DBA Daily Checks
+A performance-focused toolkit of SQL Server DMV scripts used to analyze CPU usage, memory pressure, disk latency, blocking chains, and wait statistics. This collection reflects scripts I’ve gathered through real-world experience and regularly apply when diagnosing and resolving production performance issues.
+
+Top 50 Essential Daily Health Checks for SQL Server DBA
 
 
 1. Script to Identify expensive query by Resource 
