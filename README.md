@@ -1,8 +1,7 @@
 
-=> Top 50 SQL Server DMV Scripts (DBA Daily + Triage)
+Top 50 SQL Server DMV Scripts (DBA Daily + Triage)
 
- CPU & Query Performance (1–12)
-
+ CPU & Query Performance (1–12) 
 1) Top queries by CPU (total worker time)
 
 
