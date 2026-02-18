@@ -671,8 +671,7 @@ OPTION (RECOMPILE);
 
 
 
- Closing Note
-
+ Closing Note:
 This repository is a curated collection of SQL Server DMV scripts I use in real-world troubleshooting and daily DBA health checks.  
 Use these queries as a starting point - always validate findings with system context (workload patterns, recent deployments, maintenance jobs, and baseline metrics).
 
